@@ -1,0 +1,27 @@
+# Local configuration and secrets
+config.yaml
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Runtime database, locks and cached state
+*.db
+*.db-*
+*.lock
+last_readings.json
+last_setpoint.json
+live_config.json
+sync_state.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local backups
+*.bkp
+*.bak

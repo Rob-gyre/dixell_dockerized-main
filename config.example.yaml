@@ -1,0 +1,42 @@
+profile: xr77u.json
+timezone: Europe/London
+
+serial:
+  port: /dev/ttyUSB0
+  slave: 1
+  baudrate: 9600
+  parity: N
+  stopbits: 1
+  timeout: 0.6
+
+database:
+  path: ./readings.db
+
+mqtt:
+  host: ""
+  port: 8883
+  topic: ""
+  client_id: ""
+  qos: 1
+  tls_enabled: true
+  client_cert: ""
+  client_key: ""
+  ca_cert: ""
+
+sharepoint:
+  enabled: false
+  tenant_id: ""
+  client_id: ""
+  client_secret: ""
+  hostname: ""
+  site_name: ""
+  file_path: ""
+  sheet_name: ""
+
+offline_failure_threshold: 3
+
+logging:
+  level: INFO
+
+teams:
+  webhook_url: ""

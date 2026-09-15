@@ -1,0 +1,62 @@
+services:
+  collector:
+    build: .
+    image: dixell:latest
+    container_name: dixell-collector
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - .:/app
+      - /dev:/dev
+    working_dir: /app
+    environment:
+      TZ: Europe/London
+      PYTHONUNBUFFERED: "1"
+    network_mode: host
+    command:
+      - python
+      - wait_and_run.py
+      - /dev/ttyUSB0
+      - collector_shaprepoint.py
+      - "900"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  emitter:
+    image: dixell:latest
+    container_name: dixell-emitter
+    restart: unless-stopped
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      TZ: Europe/London
+      PYTHONUNBUFFERED: "1"
+    network_mode: host
+    command:
+      - python
+      - supervisor.py
+      - emitter.py
+      - "300"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  verify:
+    image: dixell:latest
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      TZ: Europe/London
+      PYTHONUNBUFFERED: "1"
+    command:
+      - python
+      - view_queue.py
+    profiles:
+      - tools

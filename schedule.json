@@ -1,0 +1,14 @@
+{
+  "_meta": {
+    "dev_eui": "CHANGE_ME",
+    "device_name": "Dixell XR77U"
+  },
+  "identity": {
+    "company": "",
+    "site": "",
+    "zone": 0,
+    "compressor": 0
+  },
+  "schedule": {},
+  "parameters": {}
+}
