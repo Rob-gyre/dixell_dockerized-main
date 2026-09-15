@@ -1,6 +1,9 @@
 profile: xr77u.json
 timezone: Europe/London
 
+fallback_setpoint: 2.0
+fallback_dif_c: 2.0
+
 serial:
   port: /dev/ttyUSB0
   slave: 1

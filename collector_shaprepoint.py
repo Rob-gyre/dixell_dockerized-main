@@ -513,13 +513,19 @@ def collect() -> int:
         LOG.info("Target setpoint hour %s: %.1f°C", current_hour, target_sp)
     else:
         LOG.warning("No setpoint for hour %s, using fallback", current_hour)
-        target_sp = schedule.get("parameters", {}).get("setpoint", 5.0)
+        target_sp = schedule.get("parameters", {}).get("setpoint", CONFIG.get("fallback_setpoint", 5.0))
  
     # Target params
     target_params = {}
     for mqtt_key, val in schedule.get("parameters", {}).items():
         if val is not None and mqtt_key in DIXELL_WRITE_PARAMS and WRITE_ENABLED.get(mqtt_key, False):
             target_params[mqtt_key] = float(val)
+
+    if "dif_c" not in target_params:
+        target_params["dif_c"] = float(
+            CONFIG.get("fallback_dif_c", 2.0)
+        )
+
     if target_params:
         LOG.info("Target params: %s", target_params)
  

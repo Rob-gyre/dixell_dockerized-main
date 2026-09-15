@@ -84,6 +84,16 @@ setpoint and writes it if needed, then applies changed parameters.
 It reads the controller, uses the existing cached-value fallback for
 missing readings, and queues the payload in SQLite.
 
+### Fallback setpoint
+
+The collector normally uses the current hour’s setpoint from SharePoint or
+`schedule.json`. If neither contains one, it uses `fallback_setpoint` from
+`config.yaml`.
+
+Set this value for the room type at each installation. For example, a chill
+room may use `3.0`, while a freezer may use `-18.0`. The fallback can write to
+the controller, so configure it before starting the collector.
+
 The emitter publishes queued readings to MQTT separately.
 ```
 
