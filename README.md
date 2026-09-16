@@ -49,6 +49,20 @@ waits for `/dev/ttyUSB0` if the Pi boots with the controller unplugged).
 ## 1. First-time setup on a Pi
 
 Run these on the Pi itself (SSH in as `gyre`).
+`config.example.yaml` is the credential-free installation template.
+Keep credentials only in the Pi's local `config.yaml`. MQTT certificate
+fields (`client_cert`, `client_key`, `ca_cert`) contain base64-encoded
+certificate/key contents, not file paths. Teams uses `teams.webhook`.
+
+Set `_meta.dev_eui` and `_meta.device_name` in `schedule.json`.
+SharePoint supplies the worksheet's schedule, parameters and identity;
+these two metadata fields remain sourced from the local baseline file.
+
+Starting the collector can write setpoints and parameters to the controller.
+Configure the installation before running the start commands below.
+If MQTT is not configured, start only the collector:
+
+`docker compose up -d collector`
 
 ```bash
 cd ~/dixell_dockerized-main
@@ -57,10 +71,21 @@ cd ~/dixell_dockerized-main
 ./install.sh ~/dixell_dockerized-main
 # log out and back in so the docker group applies, or use sudo for now
 
-# 2. Make sure config.yaml and schedule.json exist and are correct for THIS Pi
-#    (dev_eui, mqtt client_id, sheet name, certs). In fleet mode Ansible renders
-#    these; for a standalone Pi you edit them by hand.
-ls -la config.yaml schedule.json
+# 2. Create the local configuration if it does not already exist.
+# config.yaml is excluded from Git; git pull does not supply or update it.
+if [ ! -f config.yaml ]; then
+    cp config.example.yaml config.yaml
+fi
+
+# Configure serial settings, room fallbacks and SharePoint.
+# Configure MQTT and Teams only when those services are required.
+nano config.yaml
+
+# Set the device identity, baseline hourly schedule and parameters.
+nano schedule.json
+
+# Check the schedule syntax before starting collection.
+python3 -m json.tool schedule.json
 
 # 3. Confirm the controller is on the bus
 ls -la /dev/ttyUSB0
@@ -76,26 +101,49 @@ docker compose logs -f collector
 docker compose logs -f emitter
 ```
 
-A healthy collector cycle looks like:
+### Collector operation
 
-```
-The collector connects to the Dixell controller, checks the scheduled
-setpoint and writes it if needed, then applies changed parameters.
-It reads the controller, uses the existing cached-value fallback for
-missing readings, and queues the payload in SQLite.
-
-### Fallback setpoint
-
-The collector normally uses the current hour’s setpoint from SharePoint or
-`schedule.json`. If neither contains one, it uses `fallback_setpoint` from
-`config.yaml`.
-
-Set this value for the room type at each installation. For example, a chill
-room may use `3.0`, while a freezer may use `-18.0`. The fallback can write to
-the controller, so configure it before starting the collector.
+The collector obtains the schedule, checks the target setpoint and applies
+parameter changes. It then reads the Dixell controller and queues the payload
+in SQLite. Missing readings use the existing cached-value fallback.
 
 The emitter publishes queued readings to MQTT separately.
+
+### Schedule selection and fallback values
+
+The collector first attempts to fetch the configured SharePoint worksheet.
+A successful fetch is saved to `live_config.json`.
+
+If fetching fails, the collector can use that cached configuration. Once
+`offline_failure_threshold` is reached, it prefers the local `schedule.json`.
+If no cached configuration exists, it also tries `schedule.json`.
+
+Within the selected schedule, the setpoint priority is:
+
+1. The current hour's setpoint.
+2. `parameters.setpoint`.
+3. `fallback_setpoint` from `config.yaml`.
+
+The differential uses `parameters.dif_c` when supplied. Otherwise, it uses
+`fallback_dif_c` from `config.yaml`.
+
+Configure both fallback values for each room before starting the collector:
+
+```yaml
+fallback_setpoint: 2.0
+fallback_dif_c: 2.0
 ```
+
+These are example values, not recommendations for every room type.
+Fallback values can be written to the controller.
+
+If the configuration keys are omitted, the code still defaults to a
+setpoint of 5.0°C and a differential of 2.0°C. Specify both keys explicitly
+for each installation.
+
+The fallback values do not create a schedule if all schedule sources are
+unavailable.
+
 
 A healthy emitter cycle:
 
@@ -353,3 +401,51 @@ runs `build` (cheap no-op if nothing changed), and its restart handler only
 fires when something actually changed — so you don't have to decide restart-vs-
 recreate-vs-rebuild per Pi. That decision (Section 3's rule of thumb) is encoded
 in the role.
+
+## Dixell compatibility and testing status
+
+This stack preserves the original Carel collector → SQLite queue → MQTT
+emitter architecture. The supervisor, serial-device waiting and queue viewer
+are unchanged. Controller communication uses the Dixell Modbus driver and
+`xr77u.json` profile.
+
+Existing temperature payload names are retained:
+
+- `probe_temperature`: room probe (Pb1).
+- `evap_temperature`: first evaporator probe (Pb2).
+- `ai3_temp`: second evaporator probe (Pb3).
+
+Pb2 and Pb3 readings are accepted only when their respective presence
+settings, P2P and P3P, confirm they are enabled. Rejected or missing readings
+use the existing cached-value fallback when a cached value exists.
+
+### Unresolved Carel field mappings
+
+The following original Carel fields do not yet have confirmed Dixell
+equivalents in the payload:
+
+- `comp_min_between`
+- `comp_min_off`
+- `comp_min_on`
+- `def_priority`
+- `probe_fault`
+
+Do not assume these fields are available. The general Dixell alarm flag
+does not identify a probe fault specifically.
+
+### Profile validation limits
+
+The driver checks writes against the limits and choices in `xr77u.json`.
+
+A validation error can stop a collection cycle after earlier parameters
+have already been written. Earlier writes are not rolled back.
+
+### Tests completed on the XR77U test rig
+
+- Docker build and serial communication.
+- SharePoint workbook download and worksheet parsing.
+- Selected setpoint and parameter writes, with read-back checks.
+- SQLite queueing.
+
+MQTT delivery, Teams alerts, connected third-probe operation and remaining
+profile mappings still require testing.
