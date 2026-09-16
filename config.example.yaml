@@ -1,8 +1,13 @@
-profile: xr77u.json
 timezone: Europe/London
 
+# Used when the selected schedule has no setpoint for the current hour
+# and no parameters.setpoint. Configure for this room.
 fallback_setpoint: 2.0
+
+# Used when the selected schedule supplies no dif_c.
 fallback_dif_c: 2.0
+
+profile: xr77u.json
 
 serial:
   port: /dev/ttyUSB0
@@ -13,7 +18,22 @@ serial:
   timeout: 0.6
 
 database:
-  path: ./readings.db
+  path: "./readings.db"
+
+
+sharepoint:
+  enabled: false  # Set to true to fetch from SharePoint
+  tenant_id: ""
+  client_id: ""
+  client_secret: ""
+  hostname: ""
+  site_name: ""
+  file_path: ""
+  sheet_name: ""  # Sheet name for this device
+
+# How many consecutive SharePoint failures before falling back to baseline schedule.json
+offline_failure_threshold: 3
+
 
 mqtt:
   host: ""
@@ -22,24 +42,32 @@ mqtt:
   client_id: ""
   qos: 1
   tls_enabled: true
+
+  # Base64 encoded certificates for mTLS
   client_cert: ""
+
   client_key: ""
+
+  # Optional CA certificate
   ca_cert: ""
 
-sharepoint:
-  enabled: false
-  tenant_id: ""
-  client_id: ""
-  client_secret: ""
-  hostname: ""
-  site_name: ""
-  file_path: ""
-  sheet_name: ""
+  # Azure Event Grid expects username to match client id
+  username: ""
+  password: ""
 
-offline_failure_threshold: 3
+connectivity:
+  ping_host: "1.1.1.1"
+
+emission:
+  batch_limit: 100
 
 logging:
-  level: INFO
+  level: "INFO"
 
+
+# ==============================================================================
+# TEAMS WEBHOOK
+# ==============================================================================
 teams:
-  webhook_url: ""
+  webhook: ""
+
