@@ -269,7 +269,7 @@ def decode_readings(
 
     mapping.update({
         "Pb1": "probe_temperature",
-        "Pb2": "evap1_temperature",
+        "Pb2": "evap_temperature",
         "Pb3": "ai3_temp",
         "FSt": "fan_off_temp",
         "Fnd": "fan_delay",
